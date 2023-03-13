@@ -4,10 +4,10 @@ from ixnetwork_restpy import *
 
 
 def test_restpy():
-    apiServerIp = '10.39.70.125'
+    apiServerIp = 'localhost'
 
-    ixChassisIpList = ['10.39.64.137']
-    portList = [[ixChassisIpList[0], 2,3], [ixChassisIpList[0], 2, 4]]
+    ixChassisIpList = ['10.39.70.2']
+    portList = [[ixChassisIpList[0], 5,1], [ixChassisIpList[0], 5, 2]]
 
     # For Linux API server only
     username = 'admin'
@@ -19,7 +19,7 @@ def test_restpy():
     # Forcefully take port ownership if the portList are owned by other users.
     forceTakePortOwnership = True
 
-    session = SessionAssistant(IpAddress=apiServerIp, RestPort=443, UserName=username, Password=password, 
+    session = SessionAssistant(IpAddress=apiServerIp, RestPort=5050, UserName=username, Password=password, 
                                 SessionName=None, SessionId=None, ApiKey=None,
                                 ClearConfig=True, LogFilename='restpy.log')
 

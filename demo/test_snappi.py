@@ -3,8 +3,41 @@ import pytest
 import snappi
 import time
 import datetime
+from table import table
 
 def test_snappi():
+
+    tx_bgpd = {
+        "Name":  "tx_bgpd",
+        "MAC":   "00:10:94:00:01:91",
+        "IPv4":  "166.1.1.2",
+        "IPv4_routes": "10.1.1.1",
+        "IPv6_routes": "10:1:1:1:1:1:1:1"
+    }
+
+    tx_isisd = {
+        "Name":  "tx_isisd",
+        "MAC":   "00:10:94:00:01:AB",
+        "IPv4":  "170.1.1.2",
+        "IPv6":  "170:1:1::2",
+        "IPv4_routes": "30.1.1.1",
+    }
+
+    rx_bgpd = {
+        "Name":  "rx_bgpd",
+        "MAC":   "00:10:94:00:01:AC",
+        "IPv4":  "166.1.1.1",
+        "IPv4_routes": "20.1.1.1",
+        "IPv6_routes": "20:1:1:1:1:1:1:1"
+    }
+
+    rx_isisd = {
+        "Name":  "rx_isisd",
+        "MAC":   "00:10:94:00:01:AD",
+        "IPv4":  "170.1.1.1",
+        "IPv6":  "170:1:1::1",
+        "IPv4_routes": "40.1.1.1",
+    }
 
     api = snappi.api(
             "localhost:40051",
@@ -13,423 +46,148 @@ def test_snappi():
         )
     config = api.config()
 
-    p1 = config.ports.port(name='p1', location="10.39.64.137;2;1")[-1]
-    p2 = config.ports.port(name='p2', location="10.39.64.137;2;2")[-1]
+    p1 = config.ports.add(name='p1', location="10.36.75.242;2;15")
+    p2 = config.ports.add(name='p2', location="10.36.75.242;2;16")
     
     config.options.port_options.location_preemption = True
     
-    d1 = config.devices.device(name='Device 1')[-1]
-    d2 = config.devices.device(name='Device 2')[-1]
-    d4 = config.devices.device(name='Device 4')[-1]
+    txd1 = config.devices.add(name=tx_bgpd["Name"])
+    txd2 = config.devices.add(name=tx_isisd["Name"])
     
-    d11 = config.devices.device(name='Device 11')[-1]
-    d3 = config.devices.device(name='Device 3')[-1]
-    d5 = config.devices.device(name='Device 5')[-1]
+    rxd1 = config.devices.add(name=rx_bgpd["Name"])
+    rxd2 = config.devices.add(name=rx_isisd["Name"])
     
-    #Configure Device1 with ISIS and BGP
-    eth = d1.ethernets.add()
-    eth.port_name = p1.name
-    eth.name = 'Ethernet 405'
-    eth.mac = "00:10:94:00:01:91"
-    vlan = eth.vlans.add()
-    vlan.name = 'vlan1'
-    vlan.id = 1
-    ipv4 = eth.ipv4_addresses.add()
-    ipv4.name = 'IPv4 35873'
-    ipv4.address = '166.1.1.2'
-    ipv4.gateway = '166.1.1.1'
-    ipv4.prefix = 24
+    #Configure tx_bgpd BGP
+    tx_bgpd_eth = txd1.ethernets.add(name=tx_bgpd["Name"]+ "eth")
+    tx_bgpd_eth.connection.set(port_name=p1.name)
+    tx_bgpd_eth.set(mac=tx_bgpd["MAC"], mtu=1500)
+
+    tx_bgpd_ip = tx_bgpd_eth.ipv4_addresses.add(name=tx_bgpd["Name"] + "ipv4")
+    tx_bgpd_ip.set(address=tx_bgpd["IPv4"], gateway=rx_bgpd["IPv4"], prefix=24)
     
-    ipv6 = eth.ipv6_addresses.add()
-    ipv6.name = 'IPv6 53932'
-    ipv6.address = '166:1:1::2'
-    ipv6.gateway = '166:1:1::1'
-    ipv6.prefix = 64
+    txd1.bgp.router_id = tx_bgpd["IPv4"]
+
+    tx_bgpd_bgpv4 = txd1.bgp.ipv4_interfaces.add(ipv4_name=tx_bgpd_ip.name)
+
+    tx_bgpd_bgpv4_peer = tx_bgpd_bgpv4.peers.add(name='BGP Peer 1')
+    tx_bgpd_bgpv4_peer.set(as_number=6000, as_type="ebgp", peer_address=rx_bgpd["IPv4"])
+
+    tx_bgpd_bgpv4_peer.learned_information_filter.set(
+        unicast_ipv4_prefix=True, unicast_ipv6_prefix=True
+    )
     
-    bgpv4 = d1.bgp
-    bgpv4.router_id = '192.0.1.145'
-    bgpv4_int = bgpv4.ipv4_interfaces.add()
-    bgpv4_int.ipv4_name = ipv4.name
-    bgpv4_peer = bgpv4_int.peers.add()
-    bgpv4_peer.name = 'BGP Peer 1' 
-    bgpv4_peer.as_type = "ebgp"
-    bgpv4_peer.peer_address = '166.1.1.1'
-    bgpv4_peer.as_number = 6550
+    tx_bgpd_bgpv4_peer_rrv4 = tx_bgpd_bgpv4_peer.v4_routes.add(name=tx_bgpd["Name"] + "ipv4_rr") 
+    tx_bgpd_bgpv4_peer_rrv4.addresses.add(address=tx_bgpd["IPv4_routes"], prefix=24, count=500)
     
-    route_range = bgpv4_peer.v4_routes.add(name="BgpIpv4RouteConfig1") 
-    route_range.addresses.add(address='10.1.1.1', prefix=24, count=500)
+    tx_bgpd_bgpv4_peer_rrv6 = tx_bgpd_bgpv4_peer.v6_routes.add(name=tx_bgpd["Name"] + "ipv6_rr") 
+    tx_bgpd_bgpv4_peer_rrv6.addresses.add(address=tx_bgpd["IPv6_routes"], prefix=64, count=500)
+
+
+    #Configure rx_bgpd BGP
+    rx_bgpd_eth = rxd1.ethernets.add(name=rx_bgpd["Name"] + "eth")
+    rx_bgpd_eth.set(mac=rx_bgpd["MAC"], mtu=1500)
+    rx_bgpd_eth.connection.set(port_name=p2.name)
+
+    rx_bgpd_ip = rx_bgpd_eth.ipv4_addresses.add(name=rx_bgpd["Name"] + "ipv4")
+    rx_bgpd_ip.set(address=rx_bgpd["IPv4"], gateway=tx_bgpd["IPv4"], prefix=24)
     
-    route_rangev6 = bgpv4_peer.v6_routes.add(name="BgpIpv6RouteConfig1") 
-    route_rangev6.addresses.add(address='10:1:1:1:1:1:1:1', prefix=64, count=500)
+    rxd1.bgp.router_id = rx_bgpd["IPv4"]
+
+    rx_bgpd_bgpv4 = rxd1.bgp.ipv4_interfaces.add(ipv4_name=rx_bgpd_ip.name)
+
+    rx_bgpd_bgpv4_peer = rx_bgpd_bgpv4.peers.add(name='BGP Peer 2')
+    rx_bgpd_bgpv4_peer.set(as_number=6000, as_type="ebgp", peer_address=tx_bgpd["IPv4"])
+
+    rx_bgpd_bgpv4_peer.learned_information_filter.set(
+        unicast_ipv4_prefix=True, unicast_ipv6_prefix=True
+    )
     
-    isis = d1.isis
-    isis.name = "isis 401"
-    isis.system_id = "9001"
-    isis_int = isis.interfaces.add()
-    isis_int.name = "isis Intf 1"
-    isis_int.eth_name = eth.name
-    isis_int.network_type = 'broadcast'
-    route_range = isis.v4_routes.add(name='Ipv4IsisRouteConfig 1261')
-    route_range.addresses.add(address='90.1.1.1', prefix=24, count=500)
+    rx_bgpd_bgpv4_peer_rrv4 = rx_bgpd_bgpv4_peer.v4_routes.add(name=rx_bgpd["Name"] + "ipv4_rr") 
+    rx_bgpd_bgpv4_peer_rrv4.addresses.add(address=rx_bgpd["IPv4_routes"], prefix=24, count=500)
     
-    #Configure Device2 with ISIS and BGP
-    eth = d2.ethernets.add()
-    eth.port_name = p1.name
-    eth.name = 'Ethernet 37'
-    eth.mac = "00:10:94:00:01:AB"
+    rx_bgpd_bgpv4_peer_rrv6 = rx_bgpd_bgpv4_peer.v6_routes.add(name=rx_bgpd["Name"] + "ipv6_rr") 
+    rx_bgpd_bgpv4_peer_rrv6.addresses.add(address=rx_bgpd["IPv6_routes"], prefix=64, count=500)
+
+
+    ftx_v4  = config.flows.flow(name="BGP")[-1]
+    ftx_v4.tx_rx.device.set(tx_names=[tx_bgpd_bgpv4_peer_rrv4.name], rx_names=[rx_bgpd_bgpv4_peer_rrv4.name])
+    ftx_v4.rate.pps = 100
+    ftx_v4.duration.fixed_packets.packets = 1000
+    ftx_v4.metrics.enable = True
+
+    ftx_v4_eth, ftx_v4_ip, ftx_v4_tcp = ftx_v4.packet.ethernet().ipv4().tcp()
+    ftx_v4_eth.src.value = tx_bgpd["MAC"]
+    ftx_v4_ip.src.value = tx_bgpd["IPv4"]
+    ftx_v4_ip.dst.value = rx_bgpd["IPv4"]
+    ftx_v4_tcp.src_port.value = 5000
+    ftx_v4_tcp.dst_port.value = 6000
     
-    vlan = eth.vlans.add()
-    vlan.name = 'vlan2'
-    vlan.id = 2
-    ipv4 = eth.ipv4_addresses.add()
-    ipv4.name = 'IPv4 5854'
-    ipv4.address = '167.1.1.2'
-    ipv4.gateway = '167.1.1.1'
-    ipv4.prefix = 24
+    #Configure tx_isis
+    tx_isisd_eth = txd2.ethernets.add(name=tx_isisd["Name"]+ "eth")
+    tx_isisd_eth.set(mac=tx_isisd["MAC"], mtu=1500)
+    tx_isisd_eth.connection.set(port_name=p1.name)
+
+    tx_isisd_ip = tx_isisd_eth.ipv4_addresses.add(name=tx_isisd["Name"] + "ipv4")
+    tx_isisd_ip.set(address=tx_isisd["IPv4"], gateway=rx_isisd["IPv4"], prefix=24)
     
-    isis = d2.isis
-    isis.name = "isis 17"
-    isis.system_id = "9001"
-    isis_int = isis.interfaces.add()
-    isis_int.name = "isis Intf 2"
-    isis_int.eth_name = eth.name
-    isis_int.network_type = 'broadcast'
-    route_range = isis.v4_routes.add(name='Ipv4IsisRouteConfig 18')
-    route_range.addresses.add(address='92.1.1.1', prefix=24, count=500)
+    txd2.isis.name = "tx_isis"
+    txd2.isis.system_id = "640000000001"
+
+    tx_isisd_isis = txd2.isis.interfaces.add(eth_name=tx_isisd_eth.name)
+    tx_isisd_isis.set(name="tx_isisd_isis_int", network_type='broadcast',level_type="level_2")
+
+    tx_isisd_rrv4 = txd2.isis.v4_routes.add(name=tx_isisd["Name"] + "ipv4_rr")
+    tx_isisd_rrv4.addresses.add(address=tx_isisd["IPv4_routes"], prefix=24, count=500)
+
+
+    #Configure rx_isis
+    rx_isisd_eth = rxd2.ethernets.add(name=rx_isisd["Name"]+ "eth")
+    rx_isisd_eth.set(mac=rx_isisd["MAC"], mtu=1500)
+    rx_isisd_eth.connection.set(port_name=p2.name)
+
+    rx_isisd_ip = rx_isisd_eth.ipv4_addresses.add(name=rx_isisd["Name"] + "ipv4")
+    rx_isisd_ip.set(address=rx_isisd["IPv4"], gateway=tx_isisd["IPv4"], prefix=24)
     
-    #Configure Device4 with ISIS and BGP
-    eth = d4.ethernets.add()
-    eth.port_name = p1.name
-    eth.name = 'Ethernet 60'
-    eth.mac = "00:10:94:00:01:AC"
-    
-    vlan = eth.vlans.add()
-    vlan.name = 'vlan3'
-    vlan.id = 3
-    ipv4 = eth.ipv4_addresses.add()
-    ipv4.name = 'IPv4 3500'
-    ipv4.address = '170.1.1.2'
-    ipv4.gateway = '170.1.1.1'
-    ipv4.prefix = 24
-    
-    ipv6 = eth.ipv6_addresses.add()
-    ipv6.name = 'IPv6 2684'
-    ipv6.address = '170:1:1::2'
-    ipv6.gateway = '170:1:1::1'
-    ipv6.prefix = 64
-    
-    isis = d4.isis
-    isis.name = "isis 30"
-    isis.system_id = "9001"
-    isis_int = isis.interfaces.add()
-    isis_int.name = "isis Intf 3"
-    isis_int.eth_name = eth.name
-    isis_int.network_type = 'broadcast'
-    route_rangev6 = isis.v6_routes.add(name='Ipv6IsisRouteConfig 25')
-    route_rangev6.addresses.add(address='90:1:1:1:1:1:1:1', prefix=64, count=500)
-    
-    
-    #Configure Device11 with ISIS and BGP
-    eth = d11.ethernets.add()
-    eth.port_name = p2.name
-    eth.name = 'Ethernet 415'
-    eth.mac = "00:10:94:00:01:9B"
-    vlan = eth.vlans.add()
-    vlan.name = 'vlan415'
-    vlan.id = 1
-    
-    ipv4 = eth.ipv4_addresses.add()
-    ipv4.name = 'IPv4 37206'
-    ipv4.address = '166.1.1.1'
-    ipv4.gateway = '166.1.1.2'
-    ipv4.prefix = 24
-    
-    ipv6 = eth.ipv6_addresses.add()
-    ipv6.name = 'IPv6 56202'
-    ipv6.address = '166:1:1::1'
-    ipv6.gateway = '166:1:1::2'
-    ipv6.prefix = 64
-    
-    bgpv4 = d11.bgp
-    bgpv4.router_id = '192.0.1.155'
-    bgpv4_int = bgpv4.ipv4_interfaces.add()
-    bgpv4_int.ipv4_name = ipv4.name
-    bgpv4_peer = bgpv4_int.peers.add()
-    bgpv4_peer.name = 'BGP Peer2' 
-    bgpv4_peer.as_type = "ebgp"
-    bgpv4_peer.peer_address = '166.1.1.2'
-    bgpv4_peer.as_number = 6551
-    
-    route_range = bgpv4_peer.v4_routes.add(name="BgpIpv4RouteConfig1a") 
-    route_range.addresses.add(address='31.1.1.1', prefix=32, count=500)
-    
-    route_rangev6 = bgpv4_peer.v6_routes.add(name="BgpIpv6RouteConfig1a") 
-    route_rangev6.addresses.add(address='11:1:1:1:1:1:1:1', prefix=64, count=500)
-    
-    isis = d11.isis
-    isis.name = "ISIS 411"
-    isis.system_id = "9001"
-    isis_int = isis.interfaces.add()
-    isis_int.name = "isis Intf 1a"
-    isis_int.eth_name = eth.name
-    isis_int.network_type = 'broadcast'
-    route_range = isis.v4_routes.add(name='Ipv4IsisRouteConfig 1262')
-    route_range.addresses.add(address='91.1.1.1', prefix=32, count=500)
-    
-    
-    eth = d3.ethernets.add()
-    eth.port_name = p2.name
-    eth.name = 'Ethernet 36'
-    eth.mac = "00:10:94:00:01:AA"
-    
-    vlan = eth.vlans.add()
-    vlan.name = 'vlan2a'
-    vlan.id = 2
-    ipv4 = eth.ipv4_addresses.add()
-    ipv4.name = 'IPv4 5631'
-    ipv4.address = '167.1.1.1'
-    ipv4.gateway = '167.1.1.2'
-    ipv4.prefix = 24
-    
-    isis = d3.isis
-    isis.name = "ISIS 16"
-    isis.system_id = "9001"
-    isis_int = isis.interfaces.add()
-    isis_int.name = "isis Intf 2a"
-    isis_int.eth_name = eth.name
-    isis_int.network_type = 'broadcast'
-    route_range = isis.v4_routes.add(name='Ipv4IsisRouteConfig 16')
-    route_range.addresses.add(address='93.1.1.1', prefix=32, count=500)
-    
-    eth = d5.ethernets.add()
-    eth.port_name = p2.name
-    eth.name = 'Ethernet 61'
-    eth.mac = "00:10:94:00:01:AD"
-    
-    vlan = eth.vlans.add()
-    vlan.name = 'vlan3a'
-    vlan.id = 3
-    ipv4 = eth.ipv4_addresses.add()
-    ipv4.name = 'IPv4 3501'
-    ipv4.address = '170.1.1.1'
-    ipv4.gateway = '170.1.1.2'
-    ipv4.prefix = 24
-    
-    ipv6 = eth.ipv6_addresses.add()
-    ipv6.name = 'IPv6 2693'
-    ipv6.address = '170:1:1::1'
-    ipv6.gateway = '170:1:1::2'
-    ipv6.prefix = 64
-    
-    isis = d5.isis
-    isis.name = "isis 31"
-    isis.system_id = "9001"
-    isis_int = isis.interfaces.add()
-    isis_int.name = "isis Intf 3a"
-    isis_int.eth_name = eth.name
-    isis_int.network_type = 'broadcast'
-    route_rangev6 = isis.v6_routes.add(name='Network_Group5a')
-    route_rangev6.addresses.add(address='91:1:1:1:1:1:1:1', prefix=64, count=500)
-    
-    
-    
-    #flow1
-    f1 = config.flows.flow(name="IPv4_BGP_UUT1_PEER1-4")[-1]
-    f1.tx_rx.port.tx_name = p1.name
-    f1.tx_rx.port.rx_name = p2.name
-    f1.rate.percentage = 1
-    f1.metrics.enable = True
-    
-    eth, vlan, mpls, ip = (f1.packet.ethernet().vlan().mpls().ipv4())
-    eth.src.value = "00:10:94:00:01:91"
-    eth.dst.value = "00:10:94:00:01:9B"
-    
-    vlan.id.value = 1
-    mpls.label.value = 16
-    
-    ip.src.increment.start = '10.1.1.1'
-    ip.src.increment.step = '0.0.1.0'
-    ip.src.increment.count = 500
-    
-    ip.dst.increment.start = '31.1.1.1'
-    ip.dst.increment.step = '0.0.0.1'
-    ip.dst.increment.count = 500
-    
-    #IPv4_ISIS_UUT1_PEER1-2
-    f2 = config.flows.flow(name="IPv4_ISIS_UUT1_PEER1-2")[-1]
-    f2.tx_rx.port.tx_name = p1.name
-    f2.tx_rx.port.rx_name = p2.name
-    f2.rate.percentage = 1
+    rxd2.isis.name = "rx_isis"
+    rxd2.isis.system_id = "640000000002"
+
+    rx_isisd_isis = rxd2.isis.interfaces.add(eth_name=rx_isisd_eth.name)
+    rx_isisd_isis.set(name="rx_isisd_isis_int", network_type='broadcast',level_type="level_2")
+
+    rx_isisd_rrv4 = rxd2.isis.v4_routes.add(name=rx_isisd["Name"] + "ipv4_rr")
+    rx_isisd_rrv4.addresses.add(address=rx_isisd["IPv4_routes"], prefix=24, count=500)
+
+
+    f2  = config.flows.flow(name="ISIS")[-1]
+    f2.tx_rx.device.set(tx_names=[tx_isisd_rrv4.name], rx_names=[rx_isisd_rrv4.name])
+    f2.rate.pps = 100
+    f2.duration.fixed_packets.packets = 1000
     f2.metrics.enable = True
-    
-    eth, vlan, mpls, ip = (f2.packet.ethernet().vlan().mpls().ipv4())
-    eth.src.value = "00:10:94:00:01:91"
-    eth.dst.value = "00:10:94:00:01:9B"
-    
-    
-    vlan.id.value = 1
-    mpls.label.value = 16
-    
-    ip.src.increment.start = '90.1.1.1'
-    ip.src.increment.step = '0.0.1.0'
-    ip.src.increment.count = 500
-    
-    ip.dst.increment.start = '91.1.1.1'
-    ip.dst.increment.step = '0.0.0.1'
-    ip.dst.increment.count = 500
-    
-    #IPv6_BGP_UUT1_PEER1-2
-    f3 = config.flows.flow(name="IPv6_BGP_UUT1_PEER1-2")[-1]
-    f3.tx_rx.port.tx_name = p1.name
-    f3.tx_rx.port.rx_name = p2.name
-    f3.rate.percentage = 1
-    f3.metrics.enable = True
-    
-    eth, vlan, mpls, ipv6 = (f3.packet.ethernet().vlan().mpls().ipv6())
-    eth.src.value = "00:10:94:00:01:91"
-    eth.dst.value = "00:10:94:00:01:9B"
-    
-    
-    vlan.id.value = 1
-    mpls.label.value = 16
-    
-    ipv6.src.increment.start = '10:1:1:1:1:1:1:1'
-    ipv6.src.increment.step = '0:0:0:1:0:0:0:0'
-    ipv6.src.increment.count = 500
-    
-    ipv6.dst.increment.start = '11:1:1:1:1:1:1:1'
-    ipv6.dst.increment.step = '0:0:0:1:0:0:0:0'
-    ipv6.dst.increment.count = 500
-    
-    #IPv4_BGP_PEER1_UUT1-2
-    f4 = config.flows.flow(name="IPv4_BGP_PEER1_UUT1-2")[-1]
-    f4.tx_rx.port.tx_name = p2.name
-    f4.tx_rx.port.rx_name = p1.name
-    f4.rate.percentage = 1
-    f4.metrics.enable = True
-    
-    eth, vlan, mpls, ip = (f4.packet.ethernet().vlan().mpls().ipv4())
-    eth.src.value = "00:10:94:00:01:9B"
-    eth.dst.value = "00:10:94:00:01:91"
-    
-    vlan.id.value = 1
-    mpls.label.value = 16
-    
-    ip.src.increment.start = '31.1.1.1'
-    ip.src.increment.step = '0.0.0.1'
-    ip.src.increment.count = 500
-    
-    ip.dst.increment.start = '10.1.1.1'
-    ip.dst.increment.step = '0.0.1.0'
-    ip.dst.increment.count = 500
-    
-    #IPv4_ISIS_PEER1_UUT1-2
-    f5 = config.flows.flow(name="IPv4_ISIS_PEER1_UUT1-2")[-1]
-    f5.tx_rx.port.tx_name = p2.name
-    f5.tx_rx.port.rx_name = p1.name
-    f5.rate.percentage = 1
-    f5.metrics.enable = True
-    
-    eth, vlan, mpls, ip = (f5.packet.ethernet().vlan().mpls().ipv4())
-    eth.src.value = "00:10:94:00:01:9B"
-    eth.dst.value = "00:10:94:00:01:91"
-    
-    
-    vlan.id.value = 1
-    mpls.label.value = 16
-    
-    ip.src.increment.start = '91.1.1.1'
-    ip.src.increment.step = '0.0.0.1'
-    ip.src.increment.count = 500
-    
-    ip.dst.increment.start = '90.1.1.1'
-    ip.dst.increment.step = '0.0.1.0'
-    ip.dst.increment.count = 500
-    
-    #IPv6_BGP_UUT1_PEER1-2
-    f6 = config.flows.flow(name="IPv6_BGP_PEER1_UUT1-2")[-1]
-    f6.tx_rx.port.tx_name = p2.name
-    f6.tx_rx.port.rx_name = p1.name
-    f6.rate.percentage = 1
-    f6.metrics.enable = True
-    
-    eth, vlan, mpls, ipv6 = (f6.packet.ethernet().vlan().mpls().ipv6())
-    eth.src.value = "00:10:94:00:01:9B"
-    eth.dst.value = "00:10:94:00:01:91"
-    
-    
-    vlan.id.value = 1
-    mpls.label.value = 16
-    
-    ipv6.src.increment.start = '11:1:1:1:1:1:1:1'
-    ipv6.src.increment.step = '0:0:0:1:0:0:0:0'
-    ipv6.src.increment.count = 500
-    
-    ipv6.dst.increment.start = '10:1:1:1:1:1:1:1'
-    ipv6.dst.increment.step = '0:0:0:1:0:0:0:0'
-    ipv6.dst.increment.count = 500
-    
-    #IPv6_ISIS_UUT1_PEER1-3
-    f7 = config.flows.flow(name="IPv6_ISIS_UUT1_PEER1-3")[-1]
-    f7.tx_rx.port.tx_name = p1.name
-    f7.tx_rx.port.rx_name = p2.name
-    f7.rate.percentage = 1
-    f7.metrics.enable = True
-    
-    eth, vlan, ipv6 = (f7.packet.ethernet().vlan().ipv6())
-    eth.src.value = "00:10:94:00:01:AC"
-    eth.dst.value = "00:10:94:00:01:AD"
-    
-    
-    vlan.id.value = 3
-    
-    ipv6.src.increment.start = '90:1:1:1:1:1:1:1'
-    ipv6.src.increment.step = '0:0:0:1:0:0:0:0'
-    ipv6.src.increment.count = 500
-    
-    ipv6.dst.increment.start = '91:1:1:1:1:1:1:1'
-    ipv6.dst.increment.step = '0:0:0:1:0:0:0:0'
-    ipv6.dst.increment.count = 500
-    
-    #IPv6_ISIS_PEER1_UUT1-2
-    f8 = config.flows.flow(name="IPv6_ISIS_PEER1_UUT1-2")[-1]
-    f8.tx_rx.port.tx_name = p2.name
-    f8.tx_rx.port.rx_name = p1.name
-    f8.rate.percentage = 1
-    f8.metrics.enable = True
-    
-    eth, vlan, ipv6 = (f8.packet.ethernet().vlan().ipv6())
-    eth.src.value = "00:10:94:00:01:AD"
-    eth.dst.value = "00:10:94:00:01:AC"
-    
-    vlan.id.value = 3
-    
-    ipv6.src.increment.start = '91:1:1:1:1:1:1:1'
-    ipv6.src.increment.step = '0:0:0:1:0:0:0:0'
-    ipv6.src.increment.count = 500
-    
-    ipv6.dst.increment.start = '90:1:1:1:1:1:1:1'
-    ipv6.dst.increment.step = '0:0:0:1:0:0:0:0'
-    ipv6.dst.increment.count = 500
+
+    f2_eth, f2_ip, f2_tcp = f2.packet.ethernet().ipv4().tcp()
+    f2_eth.src.value = tx_bgpd["MAC"]
+    f2_ip.src.value = tx_bgpd["IPv4"]
+    f2_ip.dst.value = rx_bgpd["IPv4"]
+    f2_tcp.src_port.value = 5000
+    f2_tcp.dst_port.value = 6000
     
     api.set_config(config)
 
-    time.sleep(10)
+    time.sleep(20)
     ps = api.protocol_state()
     ps.state = ps.START
     api.set_protocol_state(ps)
 
-    time.sleep(10)
+    time.sleep(20)
     ts = api.transmit_state()
     ts.state = ts.START
     api.set_transmit_state(ts)
 
-    time.sleep(10)
-    # wait_for(
-    #     fn=lambda: flow_metrics_ok(api), fn_name="wait_for_flow_metrics"
-    # )
+    time.sleep(11)
+    wait_for(
+        fn=lambda: flow_metrics_ok(api), fn_name="wait_for_flow_metrics"
+    )
 
-    time.sleep(10)
     ts = api.transmit_state()
     ts.state = ts.STOP
     api.set_transmit_state(ts)
@@ -437,15 +195,15 @@ def test_snappi():
     req = api.metrics_request()
     req.flow.flow_names = []
 
-    metrics = api.get_metrics(req).flow_metrics
+    api.get_metrics(req).flow_metrics
 
-    print(metrics)
 
 def flow_metrics_ok(api):
-    for m in api.get_flow_metrics():
+    for m in get_flow_metrics(api):
         if (
-            m.frames_tx <= 10000 
-            or m.frames_rx <= 10000
+            m.transmit != m.STOPPED
+            or m.frames_tx != 1000
+            or m.frames_rx != 1000
         ):
             return False
     return True
@@ -485,35 +243,39 @@ def get_flow_metrics(api):
 
         metrics = api.get_metrics(req).flow_metrics
 
-        # tb = table.Table(
-        #     "Flow Metrics",
-        #     [
-        #         "Name",
-        #         "State",
-        #         "Frames Tx",
-        #         "Frames Rx",
-        #         "FPS Tx",
-        #         "FPS Rx",
-        #         "Bytes Tx",
-        #         "Bytes Rx",
-        #     ],
-        # )
+        tb = table.Table(
+            "Flow Metrics",
+            [
+                "Name",
+                "State",
+                "Frames Tx",
+                "Frames Rx",
+                "FPS Tx",
+                "FPS Rx",
+                "Bytes Tx",
+                "Bytes Rx",
+            ],
+        )
 
-        # for m in metrics:
-        #     tb.append_row(
-        #         [
-        #             m.name,
-        #             m.transmit,
-        #             m.frames_tx,
-        #             m.frames_rx,
-        #             m.frames_tx_rate,
-        #             m.frames_rx_rate,
-        #             m.bytes_tx,
-        #             m.bytes_rx,
-        #         ]
-        #     )
+        for m in metrics:
+            tb.append_row(
+                [
+                    m.name,
+                    m.transmit,
+                    m.frames_tx,
+                    m.frames_rx,
+                    m.frames_tx_rate,
+                    m.frames_rx_rate,
+                    m.bytes_tx,
+                    m.bytes_rx,
+                ]
+            )
 
-        # log.info(tb)
+        log.info(tb)
         return metrics
     finally:
         timer("get_flow_metrics", start)
+
+
+if __name__ == "__main__":
+    pytest.main(["-s", __file__])
