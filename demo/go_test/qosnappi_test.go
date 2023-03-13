@@ -50,16 +50,16 @@ func TestQuickstart(t *testing.T) {
 	api := gosnappi.NewApi()
 
 	// Set the transport protocol to HTTP
-	api.NewHttpTransport().SetLocation("https://localhost:8443").SetVerify(false)
+	// api.NewHttpTransport().SetLocation("https://localhost:8443").SetVerify(false)
 
-	// api.NewGrpcTransport().SetLocation("localhost:40051").SetRequestTimeout(3600 * time.Second)
+	api.NewGrpcTransport().SetLocation("localhost:40051").SetRequestTimeout(3600 * time.Second)
 
 	// Create a new traffic configuration that will be set on OTG
 	config := api.NewConfig()
 
 	// Add a test port to the configuration
-	srcPort := config.Ports().Add().SetName("port1").SetLocation("10.36.75.242;2;15")
-	dstPort := config.Ports().Add().SetName("port2").SetLocation("10.36.75.242;2;16")
+	srcPort := config.Ports().Add().SetName("port1").SetLocation("10.39.64.137;2;1")
+	dstPort := config.Ports().Add().SetName("port2").SetLocation("10.39.64.137;2;2")
 
 	srcDev := config.Devices().Add().SetName(ateSrc.Name)
 	srcEth := srcDev.Ethernets().Add().SetName(ateSrc.Name + ".eth").SetMac(ateSrc.MAC)
@@ -107,10 +107,10 @@ func TestQuickstart(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	time.Sleep(180 * time.Second)
+	time.Sleep(40 * time.Second)
 	api.SetProtocolState(api.NewProtocolState().SetState(gosnappi.ProtocolStateState.START))
 
-	time.Sleep(180 * time.Second)
+	time.Sleep(40 * time.Second)
 	// Start transmitting the packets from configured flow
 	ts := api.NewTransmitState()
 	ts.SetState(gosnappi.TransmitStateState.START)
