@@ -1,17 +1,13 @@
 // go:build all
 
-package quicktest
+package gosnappitest
 
 import (
 	"testing"
 	"time"
 
+	"github.com/cisco_demo/table"
 	"github.com/open-traffic-generator/snappi/gosnappi"
-)
-
-const (
-	plen4 = 30
-	plen6 = 126
 )
 
 type Attributes struct {
@@ -59,7 +55,7 @@ var (
 	}
 )
 
-func TestQuickstart(t *testing.T) {
+func TestGoSnappi(t *testing.T) {
 	// Create a new API handle to make API calls against OTG
 	api := gosnappi.NewApi()
 
@@ -238,7 +234,7 @@ func TestQuickstart(t *testing.T) {
 		SetStep(1)
 
 	// Configure a flow and set previously created test port as one of endpoints
-	flow := config.Flows().Add().SetName("f1")
+	flow := config.Flows().Add().SetName("BGP")
 	flow.TxRx().Device().
 		SetTxNames([]string{txBgpv4PeerRrV4.Name()}).
 		SetRxNames([]string{rxBgpv4PeerRrV4.Name()})
@@ -260,7 +256,7 @@ func TestQuickstart(t *testing.T) {
 	ipv4.Src().SetValue(txBgpd.IPv4_routes)
 	ipv4.Dst().SetValue(rxBgpd.IPv4_routes)
 
-	flow2 := config.Flows().Add().SetName("f2")
+	flow2 := config.Flows().Add().SetName("ISIS")
 	flow2.TxRx().Device().
 		SetTxNames([]string{txIsisRrV4.Name()}).
 		SetRxNames([]string{rxIsisRrV4.Name()})
@@ -320,6 +316,40 @@ func TestQuickstart(t *testing.T) {
 		if metrics.FlowMetrics().Items()[0].Transmit() == gosnappi.FlowMetricTransmit.STOPPED {
 			break
 		}
-		time.Sleep(100 * time.Millisecond)
+
 	}
+	mr := api.NewMetricsRequest()
+	mr.Flow()
+	res, _ := api.GetMetrics(mr)
+
+	tb := table.NewTable(
+		"Flow Metrics",
+		[]string{
+			"Name",
+			"State",
+			"Frames Tx",
+			"Frames Rx",
+			"FPS Tx",
+			"FPS Rx",
+			"Bytes Tx",
+			"Bytes Rx",
+		},
+		15,
+	)
+	for _, v := range res.FlowMetrics().Items() {
+		if v != nil {
+			tb.AppendRow([]interface{}{
+				v.Name(),
+				v.Transmit(),
+				v.FramesTx(),
+				v.FramesRx(),
+				v.FramesTxRate(),
+				v.FramesRxRate(),
+				v.BytesTx(),
+				v.BytesRx(),
+			})
+		}
+	}
+
+	t.Log(tb.String())
 }

@@ -1,4 +1,4 @@
-module github.com/examples
+module github.com/cisco_demo
 
 go 1.19
 
