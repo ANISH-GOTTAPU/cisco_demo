@@ -3,7 +3,7 @@ import time
 from ixnetwork_restpy import *
 
 
-def test_restpy():
+def test_restpy(request):
 
     tx_bgpd = {
         "Name":  "tx_bgpd",
@@ -37,10 +37,12 @@ def test_restpy():
         "IPv4_routes": "40.1.1.1",
     }
 
-    apiServerIp = 'localhost'
+    apiServerIp, port = request.config.getoption("--host").split(":")
 
-    ixChassisIpList = ['10.36.75.242']
-    portList = [[ixChassisIpList[0], 2,11], [ixChassisIpList[0], 2, 12]]
+    ixChassisIpList = request.config.getoption("--p1").split(";")[0]
+    port1 = request.config.getoption("--p1").split(";")
+    port2 = request.config.getoption("--p2").split(";")
+    portList = [port1, port2]
 
     # For Linux API server only
     username = 'admin'
@@ -52,7 +54,7 @@ def test_restpy():
     # Forcefully take port ownership if the portList are owned by other users.
     forceTakePortOwnership = True
 
-    session = SessionAssistant(IpAddress=apiServerIp, RestPort=5050, UserName=username, Password=password, 
+    session = SessionAssistant(IpAddress=apiServerIp, RestPort=port, UserName=username, Password=password, 
                                 SessionName=None, SessionId=None, ApiKey=None,
                                 ClearConfig=True, LogLevel='info', LogFilename='restpy.log')
 
