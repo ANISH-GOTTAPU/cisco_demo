@@ -3,6 +3,7 @@
 package gosnappitest
 
 import (
+	"flag"
 	"testing"
 	"time"
 
@@ -55,21 +56,25 @@ var (
 	}
 )
 
+var host = flag.String("host", "localhost:40051", "description of the host flag")
+var port1 = flag.String("port1", "10.36.75.242;2;13", "description of the p1 flag")
+var port2 = flag.String("port2", "10.36.75.242;2;14", "description of the p2 flag")
+
 func TestGoSnappi(t *testing.T) {
+
 	// Create a new API handle to make API calls against OTG
 	api := gosnappi.NewApi()
-
 	// Set the transport protocol to HTTP
 	// api.NewHttpTransport().SetLocation("https://localhost:8443").SetVerify(false)
 
-	api.NewGrpcTransport().SetLocation("localhost:40051").SetRequestTimeout(3600 * time.Second)
+	api.NewGrpcTransport().SetLocation(*host).SetRequestTimeout(3600 * time.Second)
 
 	// Create a new traffic configuration that will be set on OTG
 	config := api.NewConfig()
 
 	// Add a test port to the configuration
-	p1 := config.Ports().Add().SetName("p1").SetLocation("10.36.75.242;2;15")
-	p2 := config.Ports().Add().SetName("p2").SetLocation("10.36.75.242;2;16")
+	p1 := config.Ports().Add().SetName("p1").SetLocation(*port1)
+	p2 := config.Ports().Add().SetName("p2").SetLocation(*port2)
 
 	txd1 := config.Devices().Add().SetName(txBgpd.Name)
 	txd2 := config.Devices().Add().SetName(txIsisd.Name)
