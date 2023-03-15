@@ -5,7 +5,7 @@ import time
 import datetime
 from table import table
 
-def test_snappi():
+def test_snappi(request):
 
     tx_bgpd = {
         "Name":  "tx_bgpd",
@@ -40,14 +40,14 @@ def test_snappi():
     }
 
     api = snappi.api(
-            "localhost:40051",
+            request.config.getoption("--host"),
             verify=False,
             transport="grpc"
         )
     config = api.config()
 
-    p1 = config.ports.add(name='p1', location="10.36.75.242;2;15")
-    p2 = config.ports.add(name='p2', location="10.36.75.242;2;16")
+    port1 = config.ports.add(name='p1', location=request.config.getoption("--p1"))
+    port2 = config.ports.add(name='p2', location=request.config.getoption("--p2"))
     
     config.options.port_options.location_preemption = True
     
@@ -59,7 +59,7 @@ def test_snappi():
     
     #Configure tx_bgpd BGP
     tx_bgpd_eth = txd1.ethernets.add(name=tx_bgpd["Name"]+ "eth")
-    tx_bgpd_eth.connection.set(port_name=p1.name)
+    tx_bgpd_eth.connection.set(port_name=port1.name)
     tx_bgpd_eth.set(mac=tx_bgpd["MAC"], mtu=1500)
 
     tx_bgpd_ip = tx_bgpd_eth.ipv4_addresses.add(name=tx_bgpd["Name"] + "ipv4")
@@ -86,7 +86,7 @@ def test_snappi():
     #Configure rx_bgpd BGP
     rx_bgpd_eth = rxd1.ethernets.add(name=rx_bgpd["Name"] + "eth")
     rx_bgpd_eth.set(mac=rx_bgpd["MAC"], mtu=1500)
-    rx_bgpd_eth.connection.set(port_name=p2.name)
+    rx_bgpd_eth.connection.set(port_name=port2.name)
 
     rx_bgpd_ip = rx_bgpd_eth.ipv4_addresses.add(name=rx_bgpd["Name"] + "ipv4")
     rx_bgpd_ip.set(address=rx_bgpd["IPv4"], gateway=tx_bgpd["IPv4"], prefix=24)
@@ -125,7 +125,7 @@ def test_snappi():
     #Configure tx_isis
     tx_isisd_eth = txd2.ethernets.add(name=tx_isisd["Name"]+ "eth")
     tx_isisd_eth.set(mac=tx_isisd["MAC"], mtu=1500)
-    tx_isisd_eth.connection.set(port_name=p1.name)
+    tx_isisd_eth.connection.set(port_name=port1.name)
 
     tx_isisd_ip = tx_isisd_eth.ipv4_addresses.add(name=tx_isisd["Name"] + "ipv4")
     tx_isisd_ip.set(address=tx_isisd["IPv4"], gateway=rx_isisd["IPv4"], prefix=24)
@@ -143,7 +143,7 @@ def test_snappi():
     #Configure rx_isis
     rx_isisd_eth = rxd2.ethernets.add(name=rx_isisd["Name"]+ "eth")
     rx_isisd_eth.set(mac=rx_isisd["MAC"], mtu=1500)
-    rx_isisd_eth.connection.set(port_name=p2.name)
+    rx_isisd_eth.connection.set(port_name=port2.name)
 
     rx_isisd_ip = rx_isisd_eth.ipv4_addresses.add(name=rx_isisd["Name"] + "ipv4")
     rx_isisd_ip.set(address=rx_isisd["IPv4"], gateway=tx_isisd["IPv4"], prefix=24)
@@ -173,12 +173,12 @@ def test_snappi():
     
     api.set_config(config)
 
-    time.sleep(20)
+    time.sleep(40)
     ps = api.protocol_state()
     ps.state = ps.START
     api.set_protocol_state(ps)
 
-    time.sleep(20)
+    time.sleep(40)
     ts = api.transmit_state()
     ts.state = ts.START
     api.set_transmit_state(ts)
