@@ -1,6 +1,8 @@
 import time
 
 from ixnetwork_restpy import *
+from table import table
+import logging as log
 
 
 def test_restpy(request):
@@ -195,11 +197,32 @@ def test_restpy(request):
 
     ixNetwork.info('{}\n'.format(flowStatistics))
 
+    tb = table.Table(
+        "Flow Metrics",
+        [
+            "Name",
+            "Frames Tx",
+            "Frames Rx",
+            "FPS Tx",
+            "FPS Rx",
+            "Bytes Rx",
+        ],
+    )
+
+
     for rowNumber,flowStat in enumerate(flowStatistics.Rows):
-        ixNetwork.info('\n\nSTATS: {}\n\n'.format(flowStat))
-        ixNetwork.info('\nRow:{}  TxPort:{}  RxPort:{}  TxFrames:{}  RxFrames:{}\n'.format(
-            rowNumber, flowStat['Tx Port'], flowStat['Rx Port'],
-            flowStat['Tx Frames'], flowStat['Rx Frames']))
+        tb.append_row(
+            [
+                flowStat['Traffic Item'],
+                flowStat['Tx Frames'],
+                flowStat['Rx Frames'],
+                flowStat['Tx Frame Rate'],
+                flowStat['Rx Frame Rate'],
+                flowStat['Rx Bytes']
+            ]
+        )
+
+    log.info(tb)
 
     ixNetwork.Traffic.StopStatelessTraffic()
     ixNetwork.StopAllProtocols(Arg1='sync')
