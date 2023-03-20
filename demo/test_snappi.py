@@ -192,14 +192,11 @@ def test_snappi(request):
     ts.state = ts.STOP
     api.set_transmit_state(ts)
 
-    req = api.metrics_request()
-    req.flow.flow_names = []
-
-    api.get_metrics(req).flow_metrics
+    get_flow_metrics(api, True)
 
 
 def flow_metrics_ok(api):
-    for m in get_flow_metrics(api):
+    for m in get_flow_metrics(api, False):
         if (
             m.transmit != m.STOPPED
             or m.frames_tx != 1000
@@ -234,7 +231,7 @@ def timer(fn_name, since):
     log.info("Elapsed duration %s: %d ns", fn_name, elapsed)
 
 
-def get_flow_metrics(api):
+def get_flow_metrics(api, is_print):
     start = datetime.datetime.now()
     try:
         log.info("Getting flow metrics ...")
@@ -247,12 +244,10 @@ def get_flow_metrics(api):
             "Flow Metrics",
             [
                 "Name",
-                "State",
                 "Frames Tx",
                 "Frames Rx",
                 "FPS Tx",
                 "FPS Rx",
-                "Bytes Tx",
                 "Bytes Rx",
             ],
         )
@@ -261,17 +256,15 @@ def get_flow_metrics(api):
             tb.append_row(
                 [
                     m.name,
-                    m.transmit,
                     m.frames_tx,
                     m.frames_rx,
                     m.frames_tx_rate,
                     m.frames_rx_rate,
-                    m.bytes_tx,
                     m.bytes_rx,
                 ]
             )
-
-        log.info(tb)
+        if is_print:
+            log.info(tb)
         return metrics
     finally:
         timer("get_flow_metrics", start)

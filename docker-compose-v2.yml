@@ -2,7 +2,7 @@ version: "2"
 
 services:
   ixia-c-ixhw-server:
-    image: ghcr.io/open-traffic-generator/ixia-c-ixhw-server:0.10.6-1
+    image: ghcr.io/open-traffic-generator/ixia-c-ixhw-server:0.11.1-1
     restart: always
     ports:
       - "5000:5000"
@@ -16,7 +16,7 @@ services:
       - "--grpc-trace-collector"
       - "jaeger:4317"
   ixia-c-gnmi-server:
-    image: ghcr.io/open-traffic-generator/ixia-c-gnmi-server:1.10.6
+    image: ghcr.io/open-traffic-generator/ixia-c-gnmi-server:1.11.1
     profiles: ["all", "gnmi"]
     restart: always
     ports:
@@ -29,7 +29,7 @@ services:
       - "https://ixia-c-controller:8443"
       - "--debug"
   ixia-c-controller:
-    image: ghcr.io/open-traffic-generator/ixia-c-controller:0.0.1-3722
+    image: ghcr.io/open-traffic-generator/ixia-c-controller:0.0.1-3865
     restart: always
     ports:
       - "8443:8443"
@@ -42,13 +42,3 @@ services:
       - "--debug"
       - "--ixia-c-ixhw-server"
       - "ixia-c-ixhw-server:5001"
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    profiles: ["all", "otlp"]
-    restart: always
-    environment:
-      - COLLECTOR_OTLP_ENABLED=true
-    ports:
-      - "16686:16686"
-      - "4317:4317"
-      - "16685:16685"

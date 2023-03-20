@@ -331,12 +331,10 @@ func TestGoSnappi(t *testing.T) {
 		"Flow Metrics",
 		[]string{
 			"Name",
-			"State",
 			"Frames Tx",
 			"Frames Rx",
 			"FPS Tx",
 			"FPS Rx",
-			"Bytes Tx",
 			"Bytes Rx",
 		},
 		15,
@@ -345,12 +343,10 @@ func TestGoSnappi(t *testing.T) {
 		if v != nil {
 			tb.AppendRow([]interface{}{
 				v.Name(),
-				v.Transmit(),
 				v.FramesTx(),
 				v.FramesRx(),
 				v.FramesTxRate(),
 				v.FramesRxRate(),
-				v.BytesTx(),
 				v.BytesRx(),
 			})
 		}
