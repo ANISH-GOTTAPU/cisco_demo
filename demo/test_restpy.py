@@ -19,7 +19,6 @@ def test_restpy(request):
         "Name":  "tx_isisd",
         "MAC":   "00:10:94:00:01:AB",
         "IPv4":  "170.1.1.2",
-        "IPv6":  "170:1:1::2",
         "IPv4_routes": "30.1.1.1",
     }
 
@@ -35,7 +34,6 @@ def test_restpy(request):
         "Name":  "rx_isisd",
         "MAC":   "00:10:94:00:01:AD",
         "IPv4":  "170.1.1.1",
-        "IPv6":  "170:1:1::1",
         "IPv4_routes": "40.1.1.1",
     }
 
@@ -191,7 +189,7 @@ def test_restpy(request):
     ixNetwork.Traffic.Apply()
     ixNetwork.Traffic.StartStatelessTraffic()
 
-    time.sleep(120)
+    time.sleep(30)
 
     flowStatistics = session.StatViewAssistant('Flow Statistics')
 

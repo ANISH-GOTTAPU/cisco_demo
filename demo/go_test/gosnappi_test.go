@@ -35,7 +35,6 @@ var (
 		Name:        "tx_isisd",
 		MAC:         "00:10:94:00:01:AB",
 		IPv4:        "170.1.1.2",
-		IPv6:        "170:1:1::2",
 		IPv4_routes: "30.1.1.1",
 	}
 
@@ -51,7 +50,6 @@ var (
 		Name:        "rx_isisd",
 		MAC:         "00:10:94:00:01:AD",
 		IPv4:        "170.1.1.1",
-		IPv6:        "170:1:1::1",
 		IPv4_routes: "40.1.1.1",
 	}
 )
@@ -298,7 +296,29 @@ func TestGoSnappi(t *testing.T) {
 	time.Sleep(40 * time.Second)
 	api.SetProtocolState(api.NewProtocolState().SetState(gosnappi.ProtocolStateState.START))
 
-	time.Sleep(40 * time.Second)
+	dl := time.Now().Add(30 * time.Second)
+	var linkLayerAddresses []string
+	for {
+		sr := api.NewStatesRequest()
+		sr.Ipv4Neighbors()
+		res, err := api.GetStates(sr)
+		if err != nil || time.Now().After(dl) {
+			t.Fatalf("err = %v || deadline exceeded", err)
+		}
+
+		for _, v := range res.Ipv4Neighbors().Items() {
+			if v != nil {
+				// linkLayerAddress := ""
+				if v.HasLinkLayerAddress() {
+					linkLayerAddresses = append(linkLayerAddresses, v.LinkLayerAddress())
+				}
+			}
+		}
+		if len(linkLayerAddresses) == 4 {
+			break
+		}
+	}
+
 	// Start transmitting the packets from configured flow
 	ts := api.NewTransmitState()
 	ts.SetState(gosnappi.TransmitStateState.START)

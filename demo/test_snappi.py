@@ -19,7 +19,6 @@ def test_snappi(request):
         "Name":  "tx_isisd",
         "MAC":   "00:10:94:00:01:AB",
         "IPv4":  "170.1.1.2",
-        "IPv6":  "170:1:1::2",
         "IPv4_routes": "30.1.1.1",
     }
 
@@ -35,7 +34,6 @@ def test_snappi(request):
         "Name":  "rx_isisd",
         "MAC":   "00:10:94:00:01:AD",
         "IPv4":  "170.1.1.1",
-        "IPv6":  "170:1:1::1",
         "IPv4_routes": "40.1.1.1",
     }
 
@@ -113,6 +111,7 @@ def test_snappi(request):
     ftx_v4.tx_rx.device.set(tx_names=[tx_bgpd_bgpv4_peer_rrv4.name], rx_names=[rx_bgpd_bgpv4_peer_rrv4.name])
     ftx_v4.rate.pps = 100
     ftx_v4.duration.fixed_packets.packets = 1000
+    ftx_v4.size.fixed = 128
     ftx_v4.metrics.enable = True
 
     ftx_v4_eth, ftx_v4_ip, ftx_v4_tcp = ftx_v4.packet.ethernet().ipv4().tcp()
@@ -162,6 +161,7 @@ def test_snappi(request):
     f2.tx_rx.device.set(tx_names=[tx_isisd_rrv4.name], rx_names=[rx_isisd_rrv4.name])
     f2.rate.pps = 100
     f2.duration.fixed_packets.packets = 1000
+    f2.size.fixed = 128
     f2.metrics.enable = True
 
     f2_eth, f2_ip, f2_tcp = f2.packet.ethernet().ipv4().tcp()
@@ -178,7 +178,10 @@ def test_snappi(request):
     ps.state = ps.START
     api.set_protocol_state(ps)
 
-    time.sleep(40)
+    wait_for(
+        fn=lambda: arp_ok(api), fn_name="wait_for_arp"
+    )
+
     ts = api.transmit_state()
     ts.state = ts.START
     api.set_transmit_state(ts)
@@ -206,8 +209,40 @@ def flow_metrics_ok(api):
     return True
 
 
+def arp_ok(api):
+    v4_gateway_macs_resolved = False
+
+    get_config = api.get_config()
+    v4_addresses = []
+
+    for device in get_config.devices:
+        for ethernet in device.ethernets:
+            for v4_address in ethernet.ipv4_addresses:
+                v4_addresses.append(v4_address.address)
+
+    request = api.states_request()
+    request.choice = request.IPV4_NEIGHBORS
+    states = api.get_states(request)
+
+    if len(v4_addresses) > 0:
+        v4_link_layer_address = [
+            state.link_layer_address
+            for state in states.ipv4_neighbors
+            if state.link_layer_address is not None
+        ]
+        if len(v4_addresses) == len(v4_link_layer_address):
+            v4_gateway_macs_resolved = True
+    else:
+        v4_gateway_macs_resolved = True
+
+    if v4_gateway_macs_resolved:
+        return True
+
+    return False
+
+
 def wait_for(
-    fn, fn_name="wait_for", interval_seconds=0.5, timeout_seconds=10
+    fn, fn_name="wait_for", interval_seconds=1, timeout_seconds=20
 ):
     start = datetime.datetime.now()
     try:
