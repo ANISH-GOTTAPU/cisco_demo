@@ -12,7 +12,6 @@ def test_snappi(request):
         "MAC":   "00:10:94:00:01:91",
         "IPv4":  "166.1.1.2",
         "IPv4_routes": "10.1.1.1",
-        "IPv6_routes": "10:1:1:1:1:1:1:1"
     }
 
     tx_isisd = {
@@ -27,7 +26,6 @@ def test_snappi(request):
         "MAC":   "00:10:94:00:01:AC",
         "IPv4":  "166.1.1.1",
         "IPv4_routes": "20.1.1.1",
-        "IPv6_routes": "20:1:1:1:1:1:1:1"
     }
 
     rx_isisd = {
@@ -71,14 +69,11 @@ def test_snappi(request):
     tx_bgpd_bgpv4_peer.set(as_number=6000, as_type="ebgp", peer_address=rx_bgpd["IPv4"])
 
     tx_bgpd_bgpv4_peer.learned_information_filter.set(
-        unicast_ipv4_prefix=True, unicast_ipv6_prefix=True
+        unicast_ipv4_prefix=True
     )
     
     tx_bgpd_bgpv4_peer_rrv4 = tx_bgpd_bgpv4_peer.v4_routes.add(name=tx_bgpd["Name"] + "ipv4_rr") 
     tx_bgpd_bgpv4_peer_rrv4.addresses.add(address=tx_bgpd["IPv4_routes"], prefix=24, count=500)
-    
-    tx_bgpd_bgpv4_peer_rrv6 = tx_bgpd_bgpv4_peer.v6_routes.add(name=tx_bgpd["Name"] + "ipv6_rr") 
-    tx_bgpd_bgpv4_peer_rrv6.addresses.add(address=tx_bgpd["IPv6_routes"], prefix=64, count=500)
 
 
     #Configure rx_bgpd BGP
@@ -102,9 +97,6 @@ def test_snappi(request):
     
     rx_bgpd_bgpv4_peer_rrv4 = rx_bgpd_bgpv4_peer.v4_routes.add(name=rx_bgpd["Name"] + "ipv4_rr") 
     rx_bgpd_bgpv4_peer_rrv4.addresses.add(address=rx_bgpd["IPv4_routes"], prefix=24, count=500)
-    
-    rx_bgpd_bgpv4_peer_rrv6 = rx_bgpd_bgpv4_peer.v6_routes.add(name=rx_bgpd["Name"] + "ipv6_rr") 
-    rx_bgpd_bgpv4_peer_rrv6.addresses.add(address=rx_bgpd["IPv6_routes"], prefix=64, count=500)
 
 
     ftx_v4  = config.flows.flow(name="BGP")[-1]

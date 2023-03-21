@@ -18,7 +18,6 @@ type Attributes struct {
 	Name        string // Interface name, only applied to ATE ports.
 	Desc        string // Description, only applied to DUT interfaces.
 	IPv4_routes string // Prefix length for IPv4.
-	IPv6_routes string // Prefix length for IPv6.
 	MTU         uint16
 }
 
@@ -28,7 +27,6 @@ var (
 		MAC:         "00:10:94:00:01:91",
 		IPv4:        "166.1.1.2",
 		IPv4_routes: "10.1.1.1",
-		IPv6_routes: "10:1:1:1:1:1:1:1",
 	}
 
 	txIsisd = Attributes{
@@ -43,7 +41,6 @@ var (
 		MAC:         "00:10:94:00:01:AC",
 		IPv4:        "166.1.1.1",
 		IPv4_routes: "20.1.1.1",
-		IPv6_routes: "20:1:1:1:1:1:1:1",
 	}
 
 	rxIsisd = Attributes{
@@ -128,9 +125,10 @@ func TestGoSnappi(t *testing.T) {
 	rxBgpdEth := rxd1.Ethernets().
 		Add().
 		SetName(rxBgpd.Name + "eth").
-		SetPortName(p2.Name()).
 		SetMac(rxBgpd.MAC).
 		SetMtu(1500)
+
+	rxBgpdEth.Connection().SetPortName(p2.Name())
 
 	rxBgpdIp := rxBgpdEth.
 		Ipv4Addresses().
@@ -172,9 +170,10 @@ func TestGoSnappi(t *testing.T) {
 	txIsisdEth := txd2.Ethernets().
 		Add().
 		SetName(txIsisd.Name + "eth").
-		SetPortName(p1.Name()).
 		SetMac(txIsisd.MAC).
 		SetMtu(1500)
+
+	txIsisdEth.Connection().SetPortName(p1.Name())
 
 	txIsisdEth.Ipv4Addresses().
 		Add().
@@ -206,9 +205,10 @@ func TestGoSnappi(t *testing.T) {
 	rxIsisdEth := rxd2.Ethernets().
 		Add().
 		SetName(rxIsisd.Name + "eth").
-		SetPortName(p2.Name()).
 		SetMac(rxIsisd.MAC).
 		SetMtu(1500)
+
+	rxIsisdEth.Connection().SetPortName(p2.Name())
 
 	rxIsisdEth.Ipv4Addresses().
 		Add().

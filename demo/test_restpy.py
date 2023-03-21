@@ -12,7 +12,6 @@ def test_restpy(request):
         "MAC":   "00:10:94:00:01:91",
         "IPv4":  "166.1.1.2",
         "IPv4_routes": "10.1.1.1",
-        "IPv6_routes": "10:1:1:1:1:1:1:1"
     }
 
     tx_isisd = {
@@ -27,7 +26,6 @@ def test_restpy(request):
         "MAC":   "00:10:94:00:01:AC",
         "IPv4":  "166.1.1.1",
         "IPv4_routes": "20.1.1.1",
-        "IPv6_routes": "20:1:1:1:1:1:1:1"
     }
 
     rx_isisd = {
