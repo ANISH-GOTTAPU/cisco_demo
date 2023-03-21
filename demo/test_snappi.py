@@ -182,7 +182,7 @@ def test_snappi(request):
     ts.state = ts.START
     api.set_transmit_state(ts)
 
-    time.sleep(3)
+    time.sleep(5)
     wait_for(
         fn=lambda: flow_metrics_ok(api), fn_name="wait_for_flow_metrics"
     )
