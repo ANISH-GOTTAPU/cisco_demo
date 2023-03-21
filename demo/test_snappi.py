@@ -170,18 +170,22 @@ def test_snappi(request):
     f2_ip.dst.value = rx_bgpd["IPv4"]
     f2_tcp.src_port.value = 5000
     f2_tcp.dst_port.value = 6000
-    
+
+    log.info("Setting Config")
     api.set_config(config)
 
-    time.sleep(40)
+    time.sleep(20)
+    log.info("Starting Protocols")
     ps = api.protocol_state()
     ps.state = ps.START
     api.set_protocol_state(ps)
 
+    time.sleep(20)
     wait_for(
         fn=lambda: arp_ok(api), fn_name="wait_for_arp"
     )
 
+    log.info("Starting Traffic")
     ts = api.transmit_state()
     ts.state = ts.START
     api.set_transmit_state(ts)

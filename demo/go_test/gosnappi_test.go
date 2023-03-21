@@ -288,14 +288,17 @@ func TestGoSnappi(t *testing.T) {
 		t.Log("Configuration: ", j)
 	}
 
+	t.Log("Setting Config")
 	// Push traffic configuration constructed so far to OTG
 	if _, err := api.SetConfig(config); err != nil {
 		t.Fatal(err)
 	}
 
-	time.Sleep(40 * time.Second)
+	time.Sleep(20 * time.Second)
+	t.Log("Starting Protocols")
 	api.SetProtocolState(api.NewProtocolState().SetState(gosnappi.ProtocolStateState.START))
 
+	time.Sleep(20 * time.Second)
 	dl := time.Now().Add(30 * time.Second)
 	var linkLayerAddresses []string
 	for {
