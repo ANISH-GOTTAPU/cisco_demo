@@ -174,7 +174,7 @@ def test_restpy(request):
     trafficItem2.Tracking.find()[0].TrackBy = ['flowGroup0']
 
     ixNetwork.StartAllProtocols(Arg1='sync')
-    time.sleep(30)
+    time.sleep(20)
     ixNetwork.info('Verify protocol sessions\n')
     protocolSummary = session.StatViewAssistant('Protocols Summary')
     protocolSummary.CheckCondition('Sessions Not Started', protocolSummary.EQUAL, 0)
@@ -187,7 +187,10 @@ def test_restpy(request):
     ixNetwork.Traffic.Apply()
     ixNetwork.Traffic.StartStatelessTraffic()
 
-    time.sleep(30)
+    time.sleep(10)
+
+    ixNetwork.Traffic.StopStatelessTraffic()
+    ixNetwork.StopAllProtocols(Arg1='sync')
 
     flowStatistics = session.StatViewAssistant('Flow Statistics')
 
@@ -220,6 +223,4 @@ def test_restpy(request):
 
     log.info(tb)
 
-    ixNetwork.Traffic.StopStatelessTraffic()
-    ixNetwork.StopAllProtocols(Arg1='sync')
-
+    session.Session.remove()
